@@ -713,13 +713,55 @@ LV_ATTRIBUTE_FAST_MEM static void map_normal(const lv_area_t * disp_area, lv_col
                 }
                 /*Fall down to SW render in case of error*/
             }
+#elif LV_USE_GPU_N9H30_GE2D
+						//rt_kprintf("f_draw:x=%d y=%d w=%d h=%d\n", draw_area->x1, draw_area->y1, lv_area_get_width(draw_area), lv_area_get_height(disp_area));
+						//rt_kprintf("f_map:x=%d y=%d w=%d h=%d\n", map_area->x1, map_area->y1, lv_area_get_width(map_area), lv_area_get_height(map_area));
+						//rt_kprintf("f_disp:x=%d y=%d w=%d h=%d\n", disp_area->x1, disp_area->y1, lv_area_get_width(disp_area), lv_area_get_height(disp_area));
+ 					  if (lv_area_get_size(draw_area) > 60*60)
+						{
+							int x             = draw_area->x1;
+							int y             = draw_area->y1;
+							int width         = draw_area_w;
+							int height        = draw_area_h;
+
+							int sprite_sx     = (draw_area->x1 - (map_area->x1 - disp_area->x1));
+							int sprite_sy     = (draw_area->y1 - (map_area->y1 - disp_area->y1));
+							int sprite_width  = sprite_sx + draw_area_w;
+							int sprite_height = sprite_sy + draw_area_h;
+
+							// Enter GE2D ->
+							ge2dInit(sizeof(lv_color_t)*8, lv_area_get_width(disp_area), lv_area_get_height(disp_area), (void *)disp_buf);
+							ge2dBitblt_SetAlphaMode(0, 0, 0);
+							ge2dBitblt_SetDrawMode(0, 0, 0);
+							
+							/**
+								* @brief OffScreen-to-OnScreen SpriteBlt with SRCCOPY.
+								* @param[in] x x position
+								* @param[in] y y position
+								* @param[in] sprite_sx sprite x position
+								* @param[in] sprite_sy sprite y position
+								* @param[in] width is width
+								* @param[in] height is height
+								* @param[in] sprite_width is sprite width
+								* @param[in] sprite_height is sprite height
+								* @param[in] buf is pointer of origin data
+								* @return none
+								* @note The sprite starting address can be programmed.
+								*/
+							extern void ge2dSpriteBltx_Screen(int x, int y, int sprite_sx, int sprite_sy, int width, int height, int sprite_width, int sprite_height, void *buf);
+							ge2dSpriteBltx_Screen(x, y, sprite_sx, sprite_sy, width, height, sprite_width, sprite_height, (void *)map_buf );
+							// -> Leave GE2D
+
+					    return;
+            }
+
+						
 #elif LV_USE_GPU_STM32_DMA2D
             if(lv_area_get_size(draw_area) >= 240) {
                 lv_gpu_stm32_dma2d_copy(disp_buf_first, disp_w, map_buf_first, map_w, draw_area_w, draw_area_h);
                 return;
             }
 #endif
-
             /*Software rendering*/
             for(y = 0; y < draw_area_h; y++) {
                 lv_memcpy(disp_buf_first, map_buf_first, draw_area_w * sizeof(lv_color_t));
@@ -767,6 +809,46 @@ LV_ATTRIBUTE_FAST_MEM static void map_normal(const lv_area_t * disp_area, lv_col
             if(lv_area_get_size(draw_area) >= 240) {
                 lv_gpu_stm32_dma2d_blend(disp_buf_first, disp_w, map_buf_first, opa, map_w, draw_area_w, draw_area_h);
                 return;
+            }
+#elif LV_USE_GPU_N9H30_GE2D
+						//rt_kprintf("draw:x=%d y=%d w=%d h=%d\n", draw_area->x1, draw_area->y1, lv_area_get_width(draw_area), lv_area_get_height(disp_area));
+						//rt_kprintf("map:x=%d y=%d w=%d h=%d\n", map_area->x1, map_area->y1, lv_area_get_width(map_area), lv_area_get_height(map_area));
+						//rt_kprintf("disp:x=%d y=%d w=%d h=%d\n", disp_area->x1, disp_area->y1, lv_area_get_width(disp_area), lv_area_get_height(disp_area));
+ 					  if (lv_area_get_size(draw_area) > 60*60)
+						{
+							int x             = draw_area->x1;
+							int y             = draw_area->y1;
+							int width         = draw_area_w;
+							int height        = draw_area_h;
+
+							int sprite_sx     = (draw_area->x1 - (map_area->x1 - disp_area->x1));
+							int sprite_sy     = (draw_area->y1 - (map_area->y1 - disp_area->y1));
+							int sprite_width  = sprite_sx + draw_area_w;
+							int sprite_height = sprite_sy + draw_area_h;
+
+							// Enter GE2D ->
+							ge2dInit(sizeof(lv_color_t)*8, lv_area_get_width(disp_area), lv_area_get_height(disp_area), (void *)disp_buf);
+							ge2dBitblt_SetAlphaMode(1, opa, opa);
+
+							/**
+								* @brief OffScreen-to-OnScreen SpriteBlt with SRCCOPY.
+								* @param[in] x x position
+								* @param[in] y y position
+								* @param[in] sprite_sx sprite x position
+								* @param[in] sprite_sy sprite y position
+								* @param[in] width is width
+								* @param[in] height is height
+								* @param[in] sprite_width is sprite width
+								* @param[in] sprite_height is sprite height
+								* @param[in] buf is pointer of origin data
+								* @return none
+								* @note The sprite starting address can be programmed.
+								*/							
+							extern void ge2dSpriteBltx_Screen(int x, int y, int sprite_sx, int sprite_sy, int width, int height, int sprite_width, int sprite_height, void *buf);
+							ge2dSpriteBltx_Screen(x, y, sprite_sx, sprite_sy, width, height, sprite_width, sprite_height, (void *)map_buf);
+							// -> Leave GE2D
+
+					    return;
             }
 #endif
 
